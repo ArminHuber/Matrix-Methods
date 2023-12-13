@@ -1,5 +1,5 @@
 %% Matrix Methods
-% Update 2023/12/12
+% Update 2023/12/13
 % written by: Armin Huber, armin.huber@dlr.de
 % -------------------------------------------------------------------------
 % Calculate guided wave dispersion diagrams for free anisotropic
@@ -34,7 +34,7 @@ C(1,1) = 154; C(1,2) = 3.7; C(1,3) = 3.7; % stiffness (GPa)
 LayerOrientations = [0 90]; % orientation of the layers in the unit cell (deg), e.g., [0 90 -45 45]
 LayerThicknesses = [.125 .125]; % corresponding layer thicknesses (mm), e.g., [.125 .125 .125 .125]
 
-Repetitions = 2; % number of repetitions of the unit cell, e.g., 2 for [0 90]2
+Repetitions = 2; % number of repetitions of the unit cell, e.g., 2 for [0 90]2 = [0 90 0 90]
 Symmetric = 1; % 1: yes 0: no; if yes, the laminate is mirrored, e.g., [0 90]2s = [0 90 0 90 90 0 90 0]
 
 Method = 'TMM'; % select matrix method: 'TMM' or 'SMM' (transfer matrix method or stiffness matrix method)
@@ -47,7 +47,7 @@ FrequencySteps = 500;
 
 %% calculate transformed stiffnesses
 C = C*1e9; % stiffness (Pa)
-UnitCellSize = length(LayerOrientations);
+UnitCellSize = length(LayerOrientations); %#ok<*NBRAK2> 
 Beta = LayerOrientations-PropagationAngle; % angle between the fibers of each layer and the propagation angle
 for m = 1:UnitCellSize % transformed stiffnesses for orthotropic materials for rotation about x3 [1], Appendix A
     s = sind(Beta(m));
@@ -79,9 +79,9 @@ if  Symmetric %#ok<*UNRCH>
     Layers = 2*Layers; 
     Thickness = 2*Thickness;
 end
-disp(['Method:   ',Method,newline...
-      'Layers:   ',num2str(Layers),newline...
-      'Thickness ',num2str(Thickness),' mm'])
+disp(['Method:    ',Method,newline...
+      'Layers:    ',num2str(Layers),newline...
+      'Thickness: ',num2str(Thickness),' mm'])
 warning('off','MATLAB:nearlySingularMatrix') % turn warnings off
 warning('off','MATLAB:singularMatrix')
 warning('off','MATLAB:illConditionedMatrix')
@@ -104,7 +104,7 @@ for m = 1:UnitCellSize % calculating the frequency and phase velocity independen
     a33(m) = (c{m}(1,1)+c{m}(5,5)+c{m}(6,6))/Delta(m);
     a34(m) = -1/Delta(m);
 end
-I = [1 1 -1;-1 -1 1;-1 -1 1]; % used for symmetric layups in SMM to obtain the global stiffness matrix from the matrix of the half layup [3], Eq. 25
+I = [1 1 -1;-1 -1 1;-1 -1 1]; % used for symmetric layups in SMM to obtain the global stiffness matrix from the matrix of the half layup [3], Eq. (25)
 Y = zeros(length(PhaseVelocity),length(Frequency)); % preallocate memory
 h = waitbar(0,sprintf('0 of %d (0 %%)',length(Frequency)),'Name','Calculating frequency...');
 for i = 1:length(Frequency)
@@ -121,7 +121,7 @@ for i = 1:length(Frequency)
             b4 = b1/(2*b3)-b3/2;
             b5 = b1/b3;
             b6 = (sqrt(3)*(b3+b5)*1i)/2;
-            Alpha(1) = sqrt(b4-b6-A1/3); % alpha from [1], Eq. (11); alpha gives the out-of-plane wavenumber component ratios for the three pairs of bulk waves (quasi-L, quasi-SV, quasi-SH), i.e., their propagation directions in the sagittal plane x1-x3
+            Alpha(1) = sqrt(b4-b6-A1/3); % alpha from [1], Eq. (11); alpha gives the out-of-plane wavenumber component ratios for the three pairs of bulk waves (quasi-L+-, quasi-SV+-, quasi-SH+-), i.e., their propagation directions in the sagittal plane x1-x3
             Alpha(2) = sqrt(b4+b6-A1/3);
             Alpha(3) = -sqrt(b3-b5-A1/3);
             Alpha2 = Alpha.^2;
@@ -163,13 +163,17 @@ for i = 1:length(Frequency)
                     end
                 end
             else
-                M = L{2};
-                for m = UnitCellSize-1:1
-                    M = M*L{m};
-                end
-                for n = 2:Repetitions
-                    for m = UnitCellSize:-1:1
+                if  UnitCellSize == 1
+                    M = L{1}^Repetitions;
+                else
+                    M = L{end};
+                    for m = UnitCellSize-1:-1:1
                         M = M*L{m};
+                    end
+                    for n = 2:Repetitions
+                        for m = UnitCellSize:-1:1
+                            M = M*L{m};
+                        end
                     end
                 end
             end
@@ -213,18 +217,17 @@ ax.YLabel.Interpreter = 'latex';
 ax.TickLabelInterpreter = 'latex';
 if  ~Symmetric
     if  Repetitions == 1
-        String = ['Dispersion diagram for $\phi$ = ',num2str(PropagationAngle,'%.0f'),'\,$^{\circ}$ in ',num2str(Thickness),'\,mm ',char(join(split(Name,'_'),'\_')),' [',char(join(split(num2str(LayerOrientations)),'/')),'] using ',Method];
+        ax.Title.String = ['Dispersion diagram for $\phi$ = ',num2str(PropagationAngle,'%.0f'),'\,$^{\circ}$ in ',num2str(Thickness),'\,mm ',char(join(split(Name,'_'),'\_')),' [',char(join(split(num2str(LayerOrientations)),'/')),'] using ',Method];
     else
-        String = ['Dispersion diagram for $\phi$ = ',num2str(PropagationAngle,'%.0f'),'\,$^{\circ}$ in ',num2str(Thickness),'\,mm ',char(join(split(Name,'_'),'\_')),' [',char(join(split(num2str(LayerOrientations)),'/')),']$_{',num2str(Repetitions),'}$ using ',Method];
+        ax.Title.String = ['Dispersion diagram for $\phi$ = ',num2str(PropagationAngle,'%.0f'),'\,$^{\circ}$ in ',num2str(Thickness),'\,mm ',char(join(split(Name,'_'),'\_')),' [',char(join(split(num2str(LayerOrientations)),'/')),']$_{',num2str(Repetitions),'}$ using ',Method];
     end
 else
     if  Repetitions == 1
-        String = ['Dispersion diagram for $\phi$ = ',num2str(PropagationAngle,'%.0f'),'\,$^{\circ}$ in ',num2str(Thickness),'\,mm ',char(join(split(Name,'_'),'\_')),' [',char(join(split(num2str(LayerOrientations)),'/')),']$_{\mathrm s}$ using ',Method];
+        ax.Title.String = ['Dispersion diagram for $\phi$ = ',num2str(PropagationAngle,'%.0f'),'\,$^{\circ}$ in ',num2str(Thickness),'\,mm ',char(join(split(Name,'_'),'\_')),' [',char(join(split(num2str(LayerOrientations)),'/')),']$_{\mathrm s}$ using ',Method];
     else
-        String = ['Dispersion diagram for $\phi$ = ',num2str(PropagationAngle,'%.0f'),'\,$^{\circ}$ in ',num2str(Thickness),'\,mm ',char(join(split(Name,'_'),'\_')),' [',char(join(split(num2str(LayerOrientations)),'/')),']$_{',num2str(Repetitions),'\mathrm s}$ using ',Method];
+        ax.Title.String = ['Dispersion diagram for $\phi$ = ',num2str(PropagationAngle,'%.0f'),'\,$^{\circ}$ in ',num2str(Thickness),'\,mm ',char(join(split(Name,'_'),'\_')),' [',char(join(split(num2str(LayerOrientations)),'/')),']$_{',num2str(Repetitions),'\mathrm s}$ using ',Method];
     end
 end
-ax.Title.String = String;
 ax.XLabel.String = 'Frequency (kHz)';
 ax.YLabel.String = 'Phase velocity (m/ms)';
 ax.YDir = 'normal';

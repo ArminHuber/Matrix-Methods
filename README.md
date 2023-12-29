@@ -1,5 +1,5 @@
 # Matrix-Methods
-Calculate guided wave dispersion diagrams for free anisotropic multilayered plates by using the transfer matrix method (TMM) or the stiffness matrix method (SMM). Using TMM, the numerical instability at high frequency-thickness products becomes obvious. By contrast, SMM remains stable. When computing SH waves (in decoupled cases), TMM is better than SMM because SMM does not find all modes and the numerical instability of TMM does not affect the guided SH waves.
+Calculate guided wave dispersion diagrams for free, perfectly elastic, multilayered, anisotropic plates by using the transfer matrix method (TMM) or the stiffness matrix method (SMM). Using TMM, the numerical instability at high frequency-thickness products becomes obvious. By contrast, SMM remains stable. When computing SH waves (in decoupled cases), TMM is better than SMM because SMM does not find all modes and the numerical instability of TMM does not affect the guided SH waves.
 
 Written in MATLAB R2022a.
 
